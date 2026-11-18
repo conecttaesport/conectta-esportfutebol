@@ -1,5 +1,5 @@
 // Conectta Esport · Futebol Society — service worker (network-first)
-const CACHE = 'fs-v1';
+const CACHE = 'fs-v2';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest',
   './logo.png', './sp1.png', './sp2.png',
