@@ -33,6 +33,20 @@
     backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 0 10px}
   .brand{display:flex;align-items:center;gap:10px;justify-content:center}
   .logobanner{width:100%;max-width:340px;height:auto;display:block;border-radius:8px}
+  .install-btn{display:block;margin:9px auto 0;background:rgba(46,155,255,.14);border:1px solid rgba(46,155,255,.45);color:#8fd0ff;font-weight:700;font-size:12px;padding:7px 15px;border-radius:20px;cursor:pointer}
+  .install-btn:active{transform:scale(.97)}
+  .inst-card{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;border-left-width:4px}
+  .inst-card.and{border-left-color:var(--green)}
+  .inst-card.ios{border-left-color:var(--blue)}
+  .inst-h{font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .inst-card.and .inst-h{color:var(--green)}
+  .inst-card.ios .inst-h{color:var(--blue)}
+  .inst-steps{list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:9px}
+  .inst-steps li{counter-increment:st;position:relative;padding-left:34px;font-size:13px;line-height:1.5;color:var(--txt)}
+  .inst-steps li::before{content:counter(st);position:absolute;left:0;top:-1px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--bg2)}
+  .inst-card.and .inst-steps li::before{background:var(--green)}
+  .inst-card.ios .inst-steps li::before{background:var(--blue)}
+  .inst-badge{font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px;background:var(--gold);color:#201300;margin-left:auto}
   .sponsors{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
   .sponsors .sp{flex:1;background:#fff;border-radius:12px;padding:7px 9px;height:58px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);overflow:hidden}
   .sponsors .sp img{max-width:100%;max-height:100%;object-fit:contain}
@@ -205,6 +219,7 @@
     <div class="brand">
       <img src="logo.png" class="logobanner" alt="Conectta Esport · Futebol Society">
     </div>
+    <button class="install-btn" onclick="openInstall()">📲 Como instalar no celular</button>
   </div>
 </header>
 
@@ -354,6 +369,33 @@
     </select></div>
   <div class="fg"><label>Observação (opcional)</label><input id="punNote" placeholder="Detalhe..." autocomplete="off"></div>
   <button class="btn red full" onclick="savePun()">Registrar</button>
+</div></div>
+
+<div class="ov" id="ovInstall"><div class="sheet">
+  <h3>📲 Instalar no celular</h3>
+  <div class="hint">É rapidinho e <b>não precisa de loja de apps</b>. Depois de instalado, abre em tela cheia e funciona offline.</div>
+  <div class="inst-card and">
+    <div class="inst-h">🤖 Android · Chrome <span class="inst-badge" id="badgeAnd" style="display:none">Seu aparelho</span></div>
+    <ol class="inst-steps">
+      <li>Abra o link no navegador <b>Chrome</b></li>
+      <li>Toque no menu <b>⋮</b> (três pontinhos, canto superior)</li>
+      <li>Toque em <b>"Adicionar à tela inicial"</b> (ou "Instalar app")</li>
+      <li>Confirme em <b>"Adicionar"</b> / "Instalar"</li>
+      <li>Pronto! O ícone aparece na tela inicial</li>
+    </ol>
+  </div>
+  <div class="inst-card ios">
+    <div class="inst-h">📱 iPhone · Safari <span class="inst-badge" id="badgeIos" style="display:none">Seu aparelho</span></div>
+    <ol class="inst-steps">
+      <li>Abra o link no <b>Safari</b> (no iPhone só funciona nele)</li>
+      <li>Toque no botão <b>Compartilhar</b> (quadrado com seta pra cima)</li>
+      <li>Role e toque em <b>"Adicionar à Tela de Início"</b></li>
+      <li>Toque em <b>"Adicionar"</b> (canto superior direito)</li>
+      <li>Pronto! Abre em tela cheia, como um app</li>
+    </ol>
+  </div>
+  <button class="btn green full" onclick="shareInvite()">🔗 Compartilhar convite</button>
+  <button class="btn ghost full" style="margin-top:8px" onclick="closeOv()">Fechar</button>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -908,6 +950,23 @@ function copyTxt(txt){
 }
 function fallbackCopy(txt){var t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy');toast('Copiado! 📋');}catch(e){toast('Copie manualmente');}document.body.removeChild(t);}
 
+/* ============ COMO INSTALAR ============ */
+function openInstall(){
+  var ua=navigator.userAgent||'';
+  var isIOS=/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/.test(ua)&&'ontouchend' in document);
+  var isAnd=/Android/i.test(ua);
+  var bi=document.getElementById('badgeIos'), ba=document.getElementById('badgeAnd');
+  if(bi)bi.style.display=isIOS?'inline-block':'none';
+  if(ba)ba.style.display=isAnd?'inline-block':'none';
+  openOv('ovInstall');
+}
+function shareInvite(){
+  var link=location.origin+location.pathname+'#instalar';
+  doShare('⚽ Conectta Esport · Futebol Society\nInstala o placar no celular, é rapidinho e não precisa de loja de apps:\n'+link);
+}
+function checkInstallHash(){ if((location.hash||'').toLowerCase()==='#instalar') openInstall(); }
+window.addEventListener('hashchange',checkInstallHash);
+
 /* ============ MODAL HELPERS ============ */
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(){document.querySelectorAll('.ov').forEach(function(o){o.classList.remove('on');});}
@@ -925,6 +984,7 @@ load();
 });
 save();
 renderPlayers();
+checkInstallHash();
 </script>
 </body>
 </html>
