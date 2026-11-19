@@ -181,6 +181,16 @@
   .crown{font-size:40px;margin-bottom:6px}
   .king-name{font-size:22px;font-weight:900;color:var(--gold)}
   .king-streak{font-size:12px;color:var(--amber);font-weight:700;margin-top:4px}
+  .striker-card{background:linear-gradient(160deg,#0c2a18,#07180e);border:1px solid rgba(23,201,100,.45);border-radius:18px;padding:18px;text-align:center;margin-bottom:12px;position:relative;overflow:hidden}
+  .striker-ball{font-size:38px;margin-bottom:4px}
+  .striker-top{font-size:12px;color:var(--green);font-weight:800;letter-spacing:2px}
+  .striker-name{font-size:24px;font-weight:900;color:#eaffee;margin-top:4px}
+  .striker-goals{font-size:13px;color:var(--green);font-weight:800;margin-top:4px}
+  .scorer-row{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:6px}
+  .scorer-row .spos{width:23px;height:23px;border-radius:7px;background:var(--bg2);display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0}
+  .scorer-row .spos.gold{background:var(--gold);color:#201300}
+  .scorer-row .sn{flex:1;font-size:14px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .scorer-row .sg{font-size:14px;font-weight:800;color:var(--green)}
   .queue{display:flex;flex-direction:column;gap:7px}
   .qitem{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:13px;font-weight:600}
   .qitem .qn{width:22px;height:22px;border-radius:7px;background:var(--bg2);display:grid;place-items:center;font-size:11px;font-weight:800;flex-shrink:0}
@@ -403,6 +413,12 @@
   <button class="btn ghost full" style="margin-top:8px" onclick="closeOv()">Fechar</button>
 </div></div>
 
+<div class="ov" id="ovScorer"><div class="sheet">
+  <h3 id="scorerTitle">Quem fez o gol?</h3>
+  <div id="scorerList"></div>
+  <button class="btn ghost full" style="margin-top:6px" onclick="recordGoal(null)">Gol sem marcar autor</button>
+</div></div>
+
 <audio id="bgm" src="music.mp3" loop preload="none"></audio>
 
 <div class="toast" id="toast"></div>
@@ -411,7 +427,7 @@
 /* ============ ESTADO ============ */
 var DB_KEY='conectta_fut_society_v1';
 var S={players:[],teams:[],matches:[],punicoes:[],king:null,kingStreak:0,queue:[],
-  stats:{}, settings:{min:7,goals:2}};
+  stats:{}, scorers:{}, settings:{min:7,goals:2}};
 var COLORS=['#17c964','#2e9bff','#ffb020','#f04a5c','#9b7bff','#22d3ee','#ff7ab0','#a3e635'];
 
 function load(){try{var r=localStorage.getItem(DB_KEY);if(r){var d=JSON.parse(r);for(var k in d)S[k]=d[k];}}catch(e){}}
@@ -687,9 +703,35 @@ function runTimer(){
 function goal(side,delta){
   if(!M||M.ended)return;
   delta=delta||1;
-  if(side==='a')M.a=Math.max(0,M.a+delta);else M.b=Math.max(0,M.b+delta);
-  renderMatch();
-  if(delta>0&&(M.a>=M.goals||M.b>=M.goals))finishMatch('gols');
+  if(delta<0){ if(side==='a')M.a=Math.max(0,M.a-1);else M.b=Math.max(0,M.b-1); renderMatch(); return; }
+  openScorer(side);
+}
+var scorerSide='a';
+function openScorer(side){
+  scorerSide=side;
+  var teamId=side==='a'?M.teamA:M.teamB;
+  var t=S.teams.find(function(x){return x.id===teamId;});
+  var nm=side==='a'?M.nameA:M.nameB;
+  document.getElementById('scorerTitle').textContent='⚽ Quem fez o gol? — '+nm;
+  var list=document.getElementById('scorerList');
+  if(t&&t.players.length){
+    list.innerHTML=t.players.map(function(pid){var p=S.players.find(function(x){return x.id===pid;});if(!p)return '';
+      return '<button class="btn" style="margin:4px 0;width:100%" onclick="recordGoal(\''+pid+'\')">'+(p.type==='goleiro'?'🧤 ':'⚽ ')+esc(p.name)+'</button>';}).join('');
+  }else{list.innerHTML='<div class="mini" style="margin-bottom:10px">Sem jogadores cadastrados neste time</div>';}
+  openOv('ovScorer');
+}
+function recordGoal(playerId){
+  if(!M||M.ended)return;
+  if(scorerSide==='a')M.a++;else M.b++;
+  if(playerId){S.scorers=S.scorers||{};S.scorers[playerId]=(S.scorers[playerId]||0)+1;}
+  save();closeOv();renderMatch();
+  if(M.a>=M.goals||M.b>=M.goals)finishMatch('gols');
+}
+function topScorers(){
+  var sc=S.scorers||{};
+  var arr=Object.keys(sc).map(function(pid){var p=S.players.find(function(x){return x.id===pid;});return {id:pid,name:p?p.name:'—',type:p?p.type:'',g:sc[pid]};}).filter(function(x){return x.g>0;});
+  arr.sort(function(a,b){return b.g-a.g;});
+  return arr;
 }
 function nowStr(){var d=new Date();return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 function pauseMatch(){if(!M)return;M.paused=true;M.pauses.push('Pausado às '+nowStr()+' ('+fmtRemain()+')');renderMatch();toast('⏸ Pausado');}
@@ -802,7 +844,7 @@ function shareRanking(){
     txt+='\n⬇ Rebaixado: '+reb.join(', ');}
   doShare(txt);
 }
-function resetRanking(){if(!confirm('Zerar classificação e histórico de partidas?'))return;S.stats={};S.matches=[];S.king=null;S.kingStreak=0;save();renderRank();toast('Zerado');}
+function resetRanking(){if(!confirm('Zerar classificação, artilharia e histórico de partidas?'))return;S.stats={};S.matches=[];S.king=null;S.kingStreak=0;S.scorers={};save();renderRank();toast('Zerado');}
 
 /* ---- Classificação em imagem PNG ---- */
 var _logoImg=null;
@@ -956,6 +998,23 @@ function renderRei(){
     h+='<div class="king-card"><div class="crown">👑</div><div class="tlabel" style="color:var(--amber)">Donos da Quadra</div>'+
       '<div class="king-name" style="font-size:16px;color:var(--mut)">Ninguém ainda</div>'+
       '<div class="king-streak">Vença uma partida para assumir a quadra</div></div>';
+  }
+  // artilheiro nato
+  var sc=topScorers();
+  if(sc.length){
+    var top=sc[0];
+    h+='<div class="striker-card">'+
+      '<div class="striker-ball">⚽</div>'+
+      '<div class="striker-top">ARTILHEIRO NATO</div>'+
+      '<div class="striker-name">'+esc(top.name)+'</div>'+
+      '<div class="striker-goals">'+top.g+' gol'+(top.g>1?'s':'')+'</div></div>';
+    if(sc.length>1){
+      h+='<div class="card"><div class="sub" style="font-weight:700;margin-bottom:10px">🥅 Artilharia</div><div class="rtable">';
+      sc.slice(0,10).forEach(function(s,i){
+        h+='<div class="scorer-row"><span class="spos'+(i===0?' gold':'')+'">'+(i+1)+'</span><span class="sn">'+(s.type==='goleiro'?'🧤 ':'')+esc(s.name)+'</span><span class="sg">'+s.g+' ⚽</span></div>';
+      });
+      h+='</div></div>';
+    }
   }
   // fila = ordem real da fila (quem entra primeiro)
   var q=(S.queue||[]).slice();
