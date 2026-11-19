@@ -917,9 +917,10 @@ function shareRankingImage(){
   loadLogo().then(function(logo){
     var played=arr.filter(function(r){return r.gp>0;});
     var minW=played.length?Math.min.apply(null,played.map(function(r){return r.w;})):null;
+    var sc=topScorers();
     var scale=2, W=720, P=26;
-    var headerH=logo?168:118, colH=40, rowH=74, footerH=50;
-    var H=headerH+colH+arr.length*rowH+footerH;
+    var headerH=logo?168:118, colH=40, rowH=74, footerH=50, scH=sc.length?70:0;
+    var H=headerH+colH+arr.length*rowH+scH+footerH;
     var cv=document.createElement('canvas'); cv.width=W*scale; cv.height=H*scale;
     var ctx=cv.getContext('2d'); ctx.scale(scale,scale); ctx.textBaseline='middle';
     var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#0a1c40'); g.addColorStop(1,'#061024');
@@ -967,6 +968,17 @@ function shareRankingImage(){
       ctx.fillStyle='rgba(255,255,255,.1)'; rrect(ctx,xPTS-18,midY-13,36,26,7); ctx.fill();
       ctx.fillStyle='#fff'; ctx.font='900 16px sans-serif'; ctx.fillText(String(r.pts),xPTS,midY);
     });
+    if(sc.length){
+      var ay=headerH+colH+arr.length*rowH+6;
+      ctx.fillStyle='rgba(23,201,100,.14)'; rrect(ctx,P,ay,W-2*P,54,12); ctx.fill();
+      ctx.fillStyle='#17c964'; rrect(ctx,P,ay,5,54,3); ctx.fill();
+      ctx.textAlign='left'; ctx.fillStyle='#17c964'; ctx.font='800 13px -apple-system,Segoe UI,Roboto,sans-serif';
+      ctx.fillText('⚽ ARTILHEIRO', P+22, ay+19);
+      ctx.fillStyle='#eaffee'; ctx.font='700 17px -apple-system,Segoe UI,Roboto,sans-serif';
+      ctx.fillText(truncCanvas(ctx,sc[0].name, W-2*P-190), P+22, ay+39);
+      ctx.textAlign='right'; ctx.fillStyle='#17c964'; ctx.font='800 17px -apple-system,Segoe UI,Roboto,sans-serif';
+      ctx.fillText(sc[0].g+' gol'+(sc[0].g>1?'s':''), W-P-18, ay+29);
+    }
     ctx.textAlign='center'; ctx.fillStyle='#64789e'; ctx.font='600 12px -apple-system,Segoe UI,Roboto,sans-serif';
     ctx.fillText('Conectta Esport · Futebol Society', W/2, H-24);
     cv.toBlob(function(blob){
@@ -1027,9 +1039,76 @@ function renderRei(){
   });h+='</div>';}
   h+='</div>';
   h+='<div class="hint">👑 <b>Rei da Quadra:</b> quem vence fica como Dono da Quadra. Inicie a próxima partida com o Dono contra o próximo da fila (aba Partida).</div>';
+  if(kingTeam||sc.length){h+='<button class="btn green full" style="margin-bottom:10px" onclick="shareReiImage()">🖼️ Compartilhar imagem</button>';}
   if(kingTeam){h+='<button class="btn ghost sm full" onclick="shareKing()">🔗 Compartilhar Donos da Quadra</button>'+
     '<button class="btn ghost sm full" style="margin-top:8px;color:var(--red)" onclick="resetKing()">↺ Zerar Rei da Quadra</button>';}
   a.innerHTML=h;
+}
+function shareReiImage(){
+  var kingTeam=S.king?S.teams.find(function(x){return x.id===S.king;}):null;
+  var sc=topScorers();
+  if(!kingTeam&&!sc.length){toast('Jogue uma partida primeiro');return;}
+  toast('Gerando imagem…');
+  loadLogo().then(function(logo){
+    var scale=2,W=720,P=26,gap=12;
+    var headerH=logo?166:110;
+    var kingH=kingTeam?152:0, strikerH=sc.length?148:0;
+    var rows=Math.min(sc.length,10);
+    var listH=sc.length>1?(46+rows*40+14):0, footerH=46;
+    var H=headerH+(kingH?kingH+gap:0)+(strikerH?strikerH+gap:0)+(listH?listH+gap:0)+footerH;
+    var cv=document.createElement('canvas'); cv.width=W*scale; cv.height=H*scale;
+    var ctx=cv.getContext('2d'); ctx.scale(scale,scale); ctx.textBaseline='middle';
+    var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#0a1c40'); g.addColorStop(1,'#061024');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    var rg=ctx.createRadialGradient(W/2,-40,10,W/2,-40,420); rg.addColorStop(0,'rgba(38,120,255,.35)'); rg.addColorStop(1,'rgba(38,120,255,0)');
+    ctx.fillStyle=rg; ctx.fillRect(0,0,W,280);
+    var topY=24;
+    if(logo){var lw=300,lh=lw*logo.height/logo.width; ctx.drawImage(logo,(W-lw)/2,topY,lw,lh); topY+=lh+4;}
+    ctx.textAlign='center'; ctx.fillStyle='#eaf1ff'; ctx.font='800 24px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.fillText('REI DA QUADRA', W/2, logo?topY+10:58);
+    ctx.fillStyle='#8fa8d6'; ctx.font='600 13px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.fillText(new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}), W/2, logo?topY+32:84);
+    var y=headerH;
+    if(kingTeam){
+      ctx.fillStyle='rgba(255,210,74,.10)'; rrect(ctx,P,y,W-2*P,kingH,16); ctx.fill();
+      ctx.strokeStyle='rgba(255,210,74,.4)'; ctx.lineWidth=1.5; rrect(ctx,P,y,W-2*P,kingH,16); ctx.stroke();
+      ctx.textAlign='center'; ctx.font='30px sans-serif'; ctx.fillText('👑', W/2, y+34);
+      ctx.fillStyle='#ffd24a'; ctx.font='800 13px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.fillText('DONOS DA QUADRA', W/2, y+64);
+      ctx.fillStyle='#fff'; ctx.font='900 26px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.fillText(truncCanvas(ctx,kingTeam.name,W-2*P-40), W/2, y+96);
+      ctx.fillStyle='#ffb020'; ctx.font='700 14px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.fillText('🔥 '+S.kingStreak+' vitória'+(S.kingStreak>1?'s':'')+' seguida'+(S.kingStreak>1?'s':''), W/2, y+124);
+      y+=kingH+gap;
+    }
+    if(sc.length){
+      ctx.fillStyle='rgba(23,201,100,.12)'; rrect(ctx,P,y,W-2*P,strikerH,16); ctx.fill();
+      ctx.strokeStyle='rgba(23,201,100,.45)'; ctx.lineWidth=1.5; rrect(ctx,P,y,W-2*P,strikerH,16); ctx.stroke();
+      ctx.textAlign='center'; ctx.font='30px sans-serif'; ctx.fillText('⚽', W/2, y+34);
+      ctx.fillStyle='#17c964'; ctx.font='800 13px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.fillText('ARTILHEIRO NATO', W/2, y+64);
+      ctx.fillStyle='#eaffee'; ctx.font='900 24px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.fillText(truncCanvas(ctx,sc[0].name,W-2*P-40), W/2, y+94);
+      ctx.fillStyle='#17c964'; ctx.font='800 14px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.fillText(sc[0].g+' gol'+(sc[0].g>1?'s':''), W/2, y+124);
+      y+=strikerH+gap;
+    }
+    if(sc.length>1){
+      ctx.fillStyle='rgba(20,48,88,.55)'; rrect(ctx,P,y,W-2*P,listH,14); ctx.fill();
+      ctx.textAlign='left'; ctx.fillStyle='#8fa8d6'; ctx.font='800 13px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.fillText('ARTILHARIA', P+22, y+26);
+      var ly=y+52;
+      sc.slice(0,rows).forEach(function(s,i){
+        ctx.textAlign='left'; ctx.fillStyle=i===0?'#ffd24a':'#cdd9ef'; ctx.font='800 15px sans-serif'; ctx.fillText((i+1)+'.', P+22, ly+14);
+        ctx.fillStyle='#eaf1ff'; ctx.font='600 15px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.fillText(truncCanvas(ctx,s.name,W-2*P-140), P+54, ly+14);
+        ctx.textAlign='right'; ctx.fillStyle='#17c964'; ctx.font='800 15px sans-serif'; ctx.fillText(s.g+' ⚽', W-P-18, ly+14);
+        ly+=40;
+      });
+      y+=listH+gap;
+    }
+    ctx.textAlign='center'; ctx.fillStyle='#64789e'; ctx.font='600 12px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.fillText('Conectta Esport · Futebol Society', W/2, H-22);
+    cv.toBlob(function(blob){
+      if(!blob){toast('Erro ao gerar imagem');return;}
+      var file=new File([blob],'rei-da-quadra.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        navigator.share({files:[file],title:'Rei da Quadra — Futebol Society'}).catch(function(){downloadBlob(blob,'rei-da-quadra.png');});
+      }else{downloadBlob(blob,'rei-da-quadra.png');}
+    },'image/png');
+  });
 }
 function shareKing(){var k=S.teams.find(function(x){return x.id===S.king;});if(!k)return;
   doShare('👑 DONOS DA QUADRA 👑\n'+k.name+'\n🔥 '+S.kingStreak+' vitória(s) seguida(s)\n\nFutebol Society — Conectta Esport');}
